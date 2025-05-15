@@ -63,7 +63,7 @@ class Job:
         
 def job_generator(env, machines, flow_times, lateness, interarrival):
     '''
-    Generates a batch of 3 and 5 new jobs.
+    Generates a batch of 3 to 5 new jobs.
     Each job has a random processing time (1-9) on a random order of 'machines' for its route
     '''
 

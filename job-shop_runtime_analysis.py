@@ -51,6 +51,25 @@ class Job:
         flow_times.append(self.flow_time)
         lateness.append(self.lateness_val)
 
+    def run_no_resources(self):
+        self.arrival = self.env.now
+
+        for machine, process_time in self.route:
+            start = self.env.now
+            self.starts.append((machine.name, start))
+
+            yield self.env.timeout(process_time)
+            finish = self.env.now
+            self.finishes.append((machine.name, finish))
+
+        self.completion = self.env.now
+        self.flow_time = self.completion - self.arrival
+        self.lateness_val = self.completion - self.deadline
+ 
+        # append globally for overall stats
+        flow_times.append(self.flow_time)
+        lateness.append(self.lateness_val)
+
         
 def job_generator(env, machines, flow_times, lateness, interarrival):
     '''
@@ -71,6 +90,34 @@ def job_generator(env, machines, flow_times, lateness, interarrival):
                 total_process_time += process_time
 
             deadline = env.now + total_process_time + random.randint(0,10)#random slack
+            name = f"Job{job_id}"
+            Job(env, name, route, deadline, flow_times, lateness)
+            job_id += 1
+
+        # pause job_generator for a random amount of time
+        interval = random.expovariate(1.0 / interarrival)
+        yield env.timeout(interval) 
+
+
+def job_generator2(env, machines, flow_times, lateness, interarrival):
+    '''
+    Generates a batch of 3 to 5 new jobs.
+    Each job has a random processing time (1-9) on a random order of 'machines' for its route
+    '''
+    job_id = 0
+    while True:
+        num_jobs = random.randint(3, 6)   # spawn 3-5 jobs
+        # build a random route
+        for _ in range(num_jobs):
+            machine_order = random.sample(machines, k=len(machines))
+            route = []
+            total_process_time = 0
+            for machine in machine_order:
+                process_time = random.randint(1,5)
+                route.append((machine,process_time))
+                total_process_time += process_time
+
+            deadline = 5
             name = f"Job{job_id}"
             Job(env, name, route, deadline, flow_times, lateness)
             job_id += 1
@@ -137,7 +184,7 @@ def measure_machines(num_machines):
 
     env.process(job_generator(env, machines, flow_times, lateness, interarrival=5))
     t0 = time.perf_counter()
-    env.run(until=100)
+    env.run(until = 100)
     t1 = time.perf_counter()
     return t1 - t0
 
