@@ -1,0 +1,69 @@
+import simpy
+import time
+import matplotlib.pyplot as plt
+import psutil
+import os
+
+def monitor_memory():
+    process = psutil.Process(os.getpid())
+    return process.memory_info().rss / 1e6 
+
+def complex_process(env, name, duration, resource=None):
+    
+    if resource:
+        with resource.request() as req:
+            yield req
+            yield env.timeout(duration)
+    else:
+        yield env.timeout(duration)
+
+def run_simulation(num_processes, process_duration, use_resource=False):
+   
+    env = simpy.Environment()
+    resource = simpy.Resource(env, capacity=5) if use_resource else None
+    
+    for i in range(num_processes):
+        env.process(complex_process(env, "process" + i, process_duration, resource))
+
+    mem_before = monitor_memory()
+    start_time = time.time()
+    env.run()
+    end_time = time.time()
+    mem_after = monitor_memory()
+
+    return end_time - start_time, mem_after - mem_before
+
+
+process_counts = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000]
+durations = []
+memory = []
+
+for count in process_counts:
+    
+        runtime, mem_delta = run_simulation(count, 1, use_resource=True)
+        durations.append(runtime)
+        memory.append(mem_delta)
+    
+#plotting
+valid_counts = [pc for pc, rt in zip(process_counts, durations) if rt is not None]
+valid_durations = [rt for rt in durations if rt is not None]
+valid_memory = [mem for mem in memory if mem is not None]
+
+plt.figure(figsize=(12, 5))
+plt.subplot(1, 2, 1)
+plt.plot(valid_counts, valid_durations, marker='o', color='blue')
+plt.title("SimPy Runtime vs. Process Count")
+plt.xlabel("Number of Processes")
+plt.ylabel("Runtime (seconds)")
+plt.grid(True)
+
+# Plot memory usage
+plt.subplot(1, 2, 2)
+plt.plot(valid_counts, valid_memory, marker='x', color='red')
+plt.title("Memory Usage Increase vs. Process Count")
+plt.xlabel("Number of Processes")
+plt.ylabel("Δ Memory (MB)")
+plt.grid(True)
+
+plt.tight_layout()
+plt.show()
