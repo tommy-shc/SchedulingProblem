@@ -23,7 +23,7 @@ def run_simulation(num_processes, process_duration, use_resource=False):
     resource = simpy.Resource(env, capacity=5) if use_resource else None
     
     for i in range(num_processes):
-        env.process(complex_process(env, "process" + i, process_duration, resource))
+        env.process(complex_process(env, "process", process_duration, resource))
 
     mem_before = monitor_memory()
     start_time = time.time()
@@ -34,7 +34,7 @@ def run_simulation(num_processes, process_duration, use_resource=False):
     return end_time - start_time, mem_after - mem_before
 
 
-process_counts = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000]
+process_counts = [1000, 5000, 10000, 25000, 50000, 100000 , 150000]
 durations = []
 memory = []
 
